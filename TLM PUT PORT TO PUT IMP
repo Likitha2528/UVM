@@ -1,0 +1,122 @@
+#Send transaction data from COMPA to COMPB with the help of TLM PUT PORT to PUT IMP . 
+#Transaction class code is added in Instruction tab.
+#Use UVM core print method to print the values of data members of transaction class.
+#COMPA and COMPB child of environment and environment child of test.
+
+
+  `include "uvm_macros.svh"
+  import uvm_pkg::*;
+  
+
+  
+  
+  class transaction extends uvm_sequence_item;
+ 
+  bit [3:0] a = 12;
+  bit [4:0] b = 24;
+  int c = 256;
+  
+  function new(string inst = "transaction");
+    super.new(inst);
+  endfunction
+  
+  
+    `uvm_object_utils_begin(transaction)
+  `uvm_field_int(a, UVM_DEFAULT | UVM_DEC);
+  `uvm_field_int(b, UVM_DEFAULT | UVM_DEC);
+  `uvm_field_int(c, UVM_DEFAULT | UVM_DEC); 
+    `uvm_object_utils_end  
+endclass
+  
+  
+  class COMPA extends uvm_component;
+    `uvm_component_utils(COMPA)
+    transaction trans;
+    uvm_blocking_put_port #(transaction) a;
+    function new(string name="compa",uvm_component parent =null);
+      super.new(name,parent);
+    endfunction
+    
+    function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      a=new("a",this);
+      trans=transaction::type_id::create("trans",this);
+    endfunction
+    
+    task run_phase(uvm_phase phase);
+      phase.raise_objection(this);
+      a.put(trans);
+      trans.print();
+      phase.drop_objection(this);
+    endtask
+  endclass 
+   
+                          
+ class COMPB extends uvm_component;
+   `uvm_component_utils(COMPB)
+    transaction tranp;
+   uvm_blocking_put_imp #(transaction,COMPB) imp;
+   function new(string name="compb",uvm_component parent =null);
+      super.new(name,parent);
+    endfunction
+    
+    function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      imp=new("imp",this);
+      
+    endfunction
+    
+   task put(transaction tranp) ;
+     tranp.print();
+      endtask
+  endclass 
+  
+  
+  class env extends uvm_env;
+    `uvm_component_utils(env)
+    COMPA A1;
+    COMPB B1;
+    function new(string name="env",uvm_component parent =null);
+      super.new(name,parent);
+    endfunction
+    function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      A1=COMPA::type_id::create("A1",this);
+      B1=COMPB::type_id::create("B1",this);
+
+    endfunction
+     function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+       A1.a.connect(B1.imp);
+     endfunction
+  endclass
+  
+   class test extends uvm_test;
+     `uvm_component_utils(test)
+    env e;
+     function new(string name="test",uvm_component parent =null);
+      super.new(name,parent);
+    endfunction
+    function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      e=env::type_id::create("e",this);
+
+    endfunction
+     
+  endclass
+  module tb;
+    initial
+      begin
+        run_test("test");
+      end
+  endmodule
+
+
+output:-------------------------------
+# KERNEL: Name   Type         Size  Value
+# KERNEL: -------------------------------
+# KERNEL: trans  transaction  -     @385 
+# KERNEL:   a    integral     4     12   
+# KERNEL:   b    integral     5     24   
+# KERNEL:   c    integral     32    'd256
+# KERNEL: -------------------------------
